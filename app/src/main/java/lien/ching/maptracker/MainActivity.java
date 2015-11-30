@@ -38,7 +38,7 @@ public class MainActivity extends Activity {
         mapView.setClickable(true);
         mapView.getMapScaleBar().setVisible(true);
         mapView.setBuiltInZoomControls(true);
-        mapView.getMapZoomControls().setZoomLevelMin((byte) 10);
+        mapView.getMapZoomControls().setZoomLevelMin((byte) 5);
         mapView.getMapZoomControls().setZoomLevelMax((byte) 20);
         setContentView(mapView);
     }
@@ -47,8 +47,10 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         envCheck = new EnvCheck(this);
-        worldMap = new MapFile(new File(envCheck.CheckAndDownload("world/world-lowres-0-7.map")));
-        taiwanMap = new MapFile(new File(envCheck.CheckAndDownload("aisa/taiwan.map")));
+        envCheck.CheckAndDownload("world/world-lowres-0-7.map");
+        envCheck.CheckAndDownload("aisa/taiwan.map");
+        worldMap = new MapFile(new File(Constant.PATH_WORLDMAP));
+        taiwanMap = new MapFile(new File(Constant.PATH_TAIWANMAP));
         multiMapDataStore = new MultiMapDataStore(MultiMapDataStore.DataPolicy.RETURN_ALL);
 
         tileCache = AndroidUtil.createTileCache(this, "mapcache", mapView.getModel().displayModel.getTileSize(), 1f, this.mapView.getModel().frameBufferModel.getOverdrawFactor());
@@ -59,7 +61,7 @@ public class MainActivity extends Activity {
         tileRendererLayer = new TileRendererLayer(tileCache,multiMapDataStore,mapView.getModel().mapViewPosition,false,true, AndroidGraphicFactory.INSTANCE);
         tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
 
-        mapView.getModel().mapViewPosition.setMapPosition(new MapPosition(new LatLong(23.5, 121), (byte) 10));
+        mapView.getModel().mapViewPosition.setMapPosition(new MapPosition(new LatLong(23.6, 121), (byte) 7));
         mapView.getLayerManager().getLayers().add(tileRendererLayer);
     }
 
