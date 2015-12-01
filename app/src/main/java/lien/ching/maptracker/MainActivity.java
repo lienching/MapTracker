@@ -47,8 +47,8 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         envCheck = new EnvCheck(this);
-        envCheck.CheckAndDownload("world/world-lowres-0-7.map");
-        envCheck.CheckAndDownload("aisa/taiwan.map");
+        envCheck.CheckAndDownload("world","world-lowres-0-7.map");
+        envCheck.CheckAndDownload("asia","taiwan.map");
         worldMap = new MapFile(new File(Constant.PATH_WORLDMAP));
         taiwanMap = new MapFile(new File(Constant.PATH_TAIWANMAP));
         multiMapDataStore = new MultiMapDataStore(MultiMapDataStore.DataPolicy.RETURN_ALL);

@@ -1,14 +1,8 @@
 package lien.ching.maptracker.api;
 
-import android.app.DownloadManager;
 import android.app.ProgressDialog;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.os.PowerManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -22,21 +16,19 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 import lien.ching.maptracker.Constant;
-import lien.ching.maptracker.MainActivity;
 
 /**
- * Created by lienching on 11/27/15.
- * This class make download map source file much easier.
+ * Created by lienching on 12/1/15.
  */
-public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
-    private Context context;
+public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
+
     private ProgressDialog dialog;
-    public PowerManager.WakeLock wakeLock;
-    public MapDownloadManager(Context context){
+    private PowerManager.WakeLock wakeLock;
+    private Context context;
+    public MapUpdateManager(Context context){
         super();
         this.context = context;
     }
-
     @Override
     protected Boolean doInBackground(String... params) {
         String continent = params[1];
@@ -54,28 +46,19 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
             }
             input = connection.getInputStream();
             File outputFile = new File(Constant.PATH_MAPSFORGE+params[0]);
-            if(outputFile.exists()){
-                output = new FileOutputStream(outputFile);
-            }
-            else{
-                EnvCheck envCheck = new EnvCheck(context);
-                envCheck.isMapResourceDirExist(continent);
-                outputFile.createNewFile();
-                output = new FileOutputStream(outputFile);
-            }
+
+            if(connection.getContentLength()==outputFile.length())return true;
 
             byte data[] = new byte[8192];
             int count;
-            long total = 0;
             while((count = input.read(data)) != -1){
-                if(isCancelled()) {
+                if(isCancelled()){
                     input.close();
                     return false;
                 }
-                total += count;
+
                 output.write(data,0,count);
             }
-            Log.d("MapDownloadManager","Write "+total+" bytes");
         }catch (Exception e){
             Log.e("MapDownloadManager","Writing Data:"+e.toString());
             return false;
@@ -126,5 +109,4 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
             Log.d("MapUpdateManager", e.toString());
         }
     }
-
 }
