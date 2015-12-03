@@ -18,6 +18,7 @@ import org.mapsforge.map.rendertheme.InternalRenderTheme;
 import java.io.File;
 
 import lien.ching.maptracker.api.EnvCheck;
+import lien.ching.maptracker.overlay.NowLocationLayout;
 
 /**
  * Created by lienching on 11/27/15.
@@ -29,6 +30,8 @@ public class MainActivity extends Activity {
     private TileCache tileCache;
     private TileRendererLayer tileRendererLayer;
     private EnvCheck envCheck;
+    private NowLocationLayout nowLocationLayout;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +44,8 @@ public class MainActivity extends Activity {
         mapView.getMapZoomControls().setZoomLevelMin((byte) 5);
         mapView.getMapZoomControls().setZoomLevelMax((byte) 20);
         setContentView(mapView);
+        nowLocationLayout = new NowLocationLayout(this,mapView.getModel().mapViewPosition);
+
     }
 
     @Override
@@ -62,13 +67,17 @@ public class MainActivity extends Activity {
         tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
 
         mapView.getModel().mapViewPosition.setMapPosition(new MapPosition(new LatLong(23.6, 121), (byte) 7));
+
+
+        //Adding Layout(first add display layout and then add control layout)
         mapView.getLayerManager().getLayers().add(tileRendererLayer);
+        mapView.getLayerManager().getLayers().add(nowLocationLayout);
+        nowLocationLayout.enableMyLocation(true);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-
     }
 
     @Override
