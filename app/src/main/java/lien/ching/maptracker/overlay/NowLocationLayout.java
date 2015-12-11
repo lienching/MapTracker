@@ -1,13 +1,18 @@
 package lien.ching.maptracker.overlay;
 
 import android.Manifest;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.graphics.drawable.Drawable;
+import android.location.GpsSatellite;
+import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
+import android.util.Log;
+import android.widget.TextView;
 
 import org.mapsforge.core.graphics.Bitmap;
 import org.mapsforge.core.graphics.Canvas;
@@ -21,9 +26,11 @@ import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
 import org.mapsforge.map.layer.Layer;
 import org.mapsforge.map.layer.overlay.Circle;
 import org.mapsforge.map.layer.overlay.Marker;
+import org.mapsforge.map.layer.overlay.Polyline;
 import org.mapsforge.map.model.MapViewPosition;
 import org.mapsforge.map.android.util.AndroidSupportUtil;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,7 +39,7 @@ import lien.ching.maptracker.R;
 /**
  * Created by lienching on 12/2/15.
  */
-public class NowLocationLayout extends Layer implements LocationListener,ActivityCompat.OnRequestPermissionsResultCallback {
+public class NowLocationLayout extends Layer implements LocationListener,GpsStatus.Listener,ActivityCompat.OnRequestPermissionsResultCallback {
 
     private final byte PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10;
     private static final GraphicFactory GRAPHIC_FACTORY = AndroidGraphicFactory.INSTANCE;
@@ -40,7 +47,17 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
     private long minTime = 0;
     private MapViewPosition mapViewPosition;
     private Activity activity;
-
+    private boolean centerAtNextFix;
+    private final Circle circle;
+    private Location lastLocation;
+    private final LocationManager locationManager;
+    private final Marker marker;
+    private final Polyline polyline;
+    private List<LatLong> history;
+    private boolean myLocationEnabled;
+    private boolean snapToLocationEnabled;
+    private Bitmap bitmap;
+    private int satellitenum;
     /**
      * @param location
      *            the location whose geographical coordinates should be converted.
@@ -58,6 +75,10 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
         return getPaint(GRAPHIC_FACTORY.createColor(160, 0, 0, 255), 2, Style.STROKE);
     }
 
+    private static Paint getDefaultPolylineStroke() {
+        return getPaint(GRAPHIC_FACTORY.createColor(160, 0, 255,0), 20, Style.STROKE);
+    }
+
     private static Paint getPaint(int color, int strokeWidth, Style style) {
         Paint paint = GRAPHIC_FACTORY.createPaint();
         paint.setColor(color);
@@ -66,15 +87,9 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
         return paint;
     }
 
-    private boolean centerAtNextFix;
-    private final Circle circle;
-    private Location lastLocation;
-    private final LocationManager locationManager;
-    private final Marker marker;
-    private List<Marker> history;
-    private boolean myLocationEnabled;
-    private boolean snapToLocationEnabled;
-    private Bitmap bitmap;
+    public int getSatellitenum(){
+        return this.satellitenum;
+    }
 
     public NowLocationLayout(Activity activity, MapViewPosition mapViewPosition) {
         super();
@@ -83,15 +98,34 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
         this.locationManager = (LocationManager) activity.getSystemService(activity.LOCATION_SERVICE);
         Drawable drawable = activity.getResources().getDrawable(R.drawable.locationmarker);
         bitmap = AndroidGraphicFactory.convertToBitmap(drawable);
-        this.marker = new Marker(null, bitmap, 0, 0);
+        this.marker = new Marker(null, bitmap, 1, 0);
         this.circle = new Circle(null, 0, getDefaultCircleFill(), getDefaultCircleStroke());
-        history = new LinkedList<Marker>();
-
+        this.polyline = new Polyline(getDefaultPolylineStroke(),GRAPHIC_FACTORY);
+        history = new LinkedList<LatLong>();
+        locationManager.addGpsStatusListener(this);
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
+        GpsStatus gpsStatus = locationManager.getGpsStatus(null);
+        if(gpsStatus != null) {
+            Iterable<GpsSatellite>satellites = gpsStatus.getSatellites();
+            Iterator<GpsSatellite> sat = satellites.iterator();
+            String lSatellites = null;
+            int i = 0;
+            while (sat.hasNext()) {
+                GpsSatellite satellite = sat.next();
+                lSatellites = "Satellite" + (i++) + ": "
+                        + satellite.getPrn() + ","
+                        + satellite.usedInFix() + ","
+                        + satellite.getSnr() + ","
+                        + satellite.getAzimuth() + ","
+                        + satellite.getElevation()+ "\n\n";
 
+                Log.d("SATELLITE",lSatellites);
+            }
+            this.satellitenum = i;
+        }
     }
 
     @Override
@@ -123,11 +157,12 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
         if (!this.myLocationEnabled) {
             return;
         }
-
         this.circle.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
-        for(Marker marker:history){
-            marker.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
-        }
+        this.marker.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
+        List<LatLong> coordinateList = polyline.getLatLongs();
+        coordinateList.removeAll(coordinateList);
+        coordinateList.addAll(history);
+        polyline.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
     }
 
 
@@ -178,9 +213,7 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
             LatLong latLong = locationToLatLong(location);
             this.marker.setLatLong(latLong);
             this.circle.setLatLong(latLong);
-            Marker tmp = new Marker(latLong,bitmap,0,0);
-            tmp.setDisplayModel(this.displayModel);
-            history.add(tmp);
+            history.add(latLong);
             if (location.getAccuracy() != 0) {
                 this.circle.setRadius(location.getAccuracy());
             } else {
@@ -189,7 +222,7 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
             }
 
             this.mapViewPosition.setCenter(latLong);
-
+            this.mapViewPosition.setZoomLevel((byte)17);
             requestRedraw();
         }
     }
@@ -227,6 +260,7 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
 
         this.circle.setDisplayModel(this.displayModel);
         this.marker.setDisplayModel(this.displayModel);
+        this.polyline.setDisplayModel(this.displayModel);
 
         boolean result = false;
         for (String provider : this.locationManager.getProviders(true)) {
@@ -246,4 +280,8 @@ public class NowLocationLayout extends Layer implements LocationListener,Activit
 
     }
 
+    @Override
+    public void onGpsStatusChanged(int event) {
+
+    }
 }

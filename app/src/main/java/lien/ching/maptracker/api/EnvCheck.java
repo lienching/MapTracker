@@ -1,5 +1,6 @@
 package lien.ching.maptracker.api;
 
+import android.app.Activity;
 import android.app.DownloadManager;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -25,7 +26,9 @@ public class EnvCheck {
     private String externalpath = Environment.getExternalStorageDirectory().getPath();
     private MapDownloadManager mapDownloadManager;
     private MapUpdateManager mapUpdateManager;
-    public EnvCheck(Context context){
+    private Activity activity;
+    public EnvCheck(Context context,Activity activity){
+        this.activity = activity;
         this.context = context;
     }
 
@@ -33,17 +36,22 @@ public class EnvCheck {
     public void CheckAndDownload(String continent, String sourcefile){
         String mapfile = continent+"/"+sourcefile;
         if(!this.isMapResourceExist(mapfile)){
-            mapDownloadManager = new MapDownloadManager(context);
+            mapDownloadManager = new MapDownloadManager(context,activity);
             mapDownloadManager.execute(mapfile,continent);
             try {
-                while (!mapDownloadManager.get(5, TimeUnit.MINUTES)) ;
+                while (!mapDownloadManager.get(10, TimeUnit.MINUTES)) ;
             }catch (Exception e){
                 Log.e("mapDownloadManager",e.toString());
             }
         }
         else{
-            mapUpdateManager = new MapUpdateManager(context);
+            mapUpdateManager = new MapUpdateManager(context,activity);
             mapUpdateManager.execute(mapfile,continent);
+            try {
+                while (!mapDownloadManager.get(10, TimeUnit.MINUTES)) ;
+            }catch (Exception e){
+                Log.e("mapDownloadManager",e.toString());
+            }
         }
     }
 

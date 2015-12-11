@@ -1,5 +1,6 @@
 package lien.ching.maptracker.api;
 
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
@@ -25,8 +26,10 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
     private ProgressDialog dialog;
     private PowerManager.WakeLock wakeLock;
     private Context context;
-    public MapUpdateManager(Context context){
+    private Activity activity;
+    public MapUpdateManager(Context context, Activity activity){
         super();
+        this.activity = activity;
         this.context = context;
     }
     @Override
@@ -35,6 +38,7 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
         InputStream input = null;
         OutputStream output = null;
         HttpURLConnection connection = null;
+        File outputFile = new File(Constant.PATH_MAPSFORGE+params[0]);
         try{
             URL url = new URL("http://download.mapsforge.org/maps/"+params[0]);
             connection = (HttpURLConnection) url.openConnection();
@@ -45,10 +49,17 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
                 return false;
             }
             input = connection.getInputStream();
-            File outputFile = new File(Constant.PATH_MAPSFORGE+params[0]);
 
-            if(connection.getContentLength()==outputFile.length())return true;
 
+            if (outputFile.lastModified()==connection.getLastModified()){
+                input.close();
+                output.close();
+                return true;
+            }
+            dialog.setMessage("Map Source Updating");
+            outputFile.delete();
+            outputFile.createNewFile();
+            output = new FileOutputStream(outputFile);
             byte data[] = new byte[8192];
             int count;
             while((count = input.read(data)) != -1){
@@ -68,23 +79,24 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
                     output.close();
                 if (input != null)
                     input.close();
+
             } catch (IOException ignored) {
             }
-
+            outputFile.setLastModified(connection.getLastModified());
             if (connection != null)
                 connection.disconnect();
         }
-        return true;
+        return false;
     }
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, context.getClass().getName());
+        PowerManager pm = (PowerManager) activity.getSystemService(Context.POWER_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, activity.getClass().getName());
         wakeLock.acquire();
-        dialog = new ProgressDialog(context);
-        dialog.setMessage("Map Source Updating");
+        dialog = new ProgressDialog(activity);
+        dialog.setMessage("Map Source Checking");
         dialog.setCancelable(false);
         dialog.setIndeterminate(true);
         dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
@@ -95,7 +107,7 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
     protected void onPostExecute(Boolean aBoolean) {
         super.onPostExecute(aBoolean);
         if(dialog.isShowing()){
-            dialog.cancel();
+            dialog.dismiss();
         }
         if(wakeLock.isHeld())
             wakeLock.release();

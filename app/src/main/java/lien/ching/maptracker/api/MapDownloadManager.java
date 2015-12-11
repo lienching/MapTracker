@@ -1,5 +1,6 @@
 package lien.ching.maptracker.api;
 
+import android.app.Activity;
 import android.app.DownloadManager;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -30,10 +31,12 @@ import lien.ching.maptracker.MainActivity;
  */
 public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
     private Context context;
+    private Activity activity;
     private ProgressDialog dialog;
     public PowerManager.WakeLock wakeLock;
-    public MapDownloadManager(Context context){
+    public MapDownloadManager(Context context,Activity activity){
         super();
+        this.activity = activity;
         this.context = context;
     }
 
@@ -43,6 +46,8 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
         InputStream input = null;
         OutputStream output = null;
         HttpURLConnection connection = null;
+        File outputFile = new File(Constant.PATH_MAPSFORGE+params[0]);
+
         try{
             URL url = new URL("http://download.mapsforge.org/maps/"+params[0]);
             connection = (HttpURLConnection) url.openConnection();
@@ -53,15 +58,15 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
                 return false;
             }
             input = connection.getInputStream();
-            File outputFile = new File(Constant.PATH_MAPSFORGE+params[0]);
             if(outputFile.exists()){
                 output = new FileOutputStream(outputFile);
             }
             else{
-                EnvCheck envCheck = new EnvCheck(context);
+                EnvCheck envCheck = new EnvCheck(context,activity);
                 envCheck.isMapResourceDirExist(continent);
                 outputFile.createNewFile();
                 output = new FileOutputStream(outputFile);
+
             }
 
             byte data[] = new byte[8192];
@@ -75,6 +80,7 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
                 total += count;
                 output.write(data,0,count);
             }
+
             Log.d("MapDownloadManager","Write "+total+" bytes");
         }catch (Exception e){
             Log.e("MapDownloadManager","Writing Data:"+e.toString());
@@ -87,21 +93,21 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
                     input.close();
             } catch (IOException ignored) {
             }
-
+            outputFile.setLastModified(connection.getLastModified());
             if (connection != null)
                 connection.disconnect();
         }
-        return true;
+        return false;
     }
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, context.getClass().getName());
+        PowerManager pm = (PowerManager) activity.getSystemService(Context.POWER_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, activity.getClass().getName());
         wakeLock.acquire();
-        dialog = new ProgressDialog(context);
-        dialog.setMessage("Map Source Updating");
+        dialog = new ProgressDialog(activity);
+        dialog.setMessage("Map Source Downing");
         dialog.setCancelable(false);
         dialog.setIndeterminate(true);
         dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
@@ -112,7 +118,7 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
     protected void onPostExecute(Boolean aBoolean) {
         super.onPostExecute(aBoolean);
         if(dialog.isShowing()){
-            dialog.cancel();
+            dialog.dismiss();
         }
         if(wakeLock.isHeld())
             wakeLock.release();
@@ -126,5 +132,4 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
             Log.d("MapUpdateManager", e.toString());
         }
     }
-
 }
