@@ -57,6 +57,7 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
     private boolean myLocationEnabled;
     private boolean snapToLocationEnabled;
     private Bitmap bitmap;
+    private GpsStatus mGpsStatus;
     private int satellitenum;
     /**
      * @param location
@@ -87,7 +88,7 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
         return paint;
     }
 
-    public int getSatellitenum(){
+    private int getSatelliteInUseNum(){
         return this.satellitenum;
     }
 
@@ -154,7 +155,7 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
 
     @Override
     public synchronized void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
-        if (!this.myLocationEnabled) {
+        if (!this.myLocationEnabled || this.getSatelliteInUseNum() < 6) {
             return;
         }
         this.circle.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
@@ -206,7 +207,7 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
 
     @Override
     public void onLocationChanged(Location location) {
-
+        if(this.getSatelliteInUseNum()<6)return;
         synchronized (this) {
             this.lastLocation = location;
 
@@ -239,13 +240,13 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
         this.minTime = minTime;
     }
 
-    /**
-     * @param snapToLocationEnabled
-     *            whether the map should be centered at each received location fix.
-     */
+    /*
+    // @param snapToLocationEnabled
+   //           whether the map should be centered at each received location fix.
     public synchronized void setSnapToLocationEnabled(boolean snapToLocationEnabled) {
         this.snapToLocationEnabled = snapToLocationEnabled;
     }
+    */
 
     private synchronized void enableBestAvailableProvider() {
         if (!AndroidSupportUtil.runtimePermissionRequiredForAccessFineLocation(activity)) {
@@ -282,6 +283,15 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
 
     @Override
     public void onGpsStatusChanged(int event) {
-
+        satellitenum = 0;
+        mGpsStatus = locationManager.getGpsStatus(mGpsStatus);
+        Iterable<GpsSatellite> satellites = mGpsStatus.getSatellites();
+        if (satellites != null) {
+            for (GpsSatellite gpsSatellite : satellites) {
+                if (gpsSatellite.usedInFix()) {
+                    satellitenum++;
+                }
+            }
+        }
     }
 }
