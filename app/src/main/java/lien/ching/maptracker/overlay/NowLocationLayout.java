@@ -3,7 +3,9 @@ package lien.ching.maptracker.overlay;
 import android.Manifest;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.location.Criteria;
 import android.location.GpsSatellite;
 import android.location.GpsStatus;
 import android.location.Location;
@@ -39,6 +41,8 @@ import lien.ching.maptracker.R;
 /**
  * Created by lienching on 12/2/15.
  */
+
+//TODO AGPS判斷
 public class NowLocationLayout extends Layer implements LocationListener,GpsStatus.Listener,ActivityCompat.OnRequestPermissionsResultCallback {
 
     private final byte PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10;
@@ -97,6 +101,11 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
         this.activity = activity;
         this.mapViewPosition = mapViewPosition;
         this.locationManager = (LocationManager) activity.getSystemService(activity.LOCATION_SERVICE);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L,1.0f, this);
+        if(!locationManager.isProviderEnabled (LocationManager.GPS_PROVIDER)){
+            activity.startActivityForResult(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS), 0);
+        }
+
         Drawable drawable = activity.getResources().getDrawable(R.drawable.locationmarker);
         bitmap = AndroidGraphicFactory.convertToBitmap(drawable);
         this.marker = new Marker(null, bitmap, 1, 0);
@@ -155,7 +164,7 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
 
     @Override
     public synchronized void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
-        if (!this.myLocationEnabled || this.getSatelliteInUseNum() < 6) {
+        if (!this.myLocationEnabled || this.getSatelliteInUseNum() < 6 || lastLocation.getAccuracy()>Criteria.ACCURACY_HIGH) {
             return;
         }
         this.circle.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
@@ -215,15 +224,14 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
             this.marker.setLatLong(latLong);
             this.circle.setLatLong(latLong);
             history.add(latLong);
-            if (location.getAccuracy() != 0) {
+            if (location.getAccuracy() <= Criteria.ACCURACY_HIGH) {
                 this.circle.setRadius(location.getAccuracy());
             } else {
-                // on the emulator we do not get an accuracy
                 this.circle.setRadius(40);
             }
 
             this.mapViewPosition.setCenter(latLong);
-            this.mapViewPosition.setZoomLevel((byte)17);
+            this.mapViewPosition.setZoomLevel((byte) 17);
             requestRedraw();
         }
     }
