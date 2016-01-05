@@ -51,25 +51,25 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        envCheck.CheckAndDownload("world", "world-lowres-0-7.map");
-        envCheck.CheckAndDownload("asia", "taiwan.map");
-        worldMap = new MapFile(new File(Constant.PATH_WORLDMAP));
-        taiwanMap = new MapFile(new File(Constant.PATH_TAIWANMAP));
-        multiMapDataStore = new MultiMapDataStore(MultiMapDataStore.DataPolicy.RETURN_ALL);
+        //envCheck.CheckAndDownload("world", "world-lowres-0-7.map");
+        //envCheck.CheckAndDownload("asia", "taiwan.map");
+        //worldMap = new MapFile(new File(Constant.PATH_WORLDMAP));
+        //taiwanMap = new MapFile(new File(Constant.PATH_TAIWANMAP));
+        //multiMapDataStore = new MultiMapDataStore(MultiMapDataStore.DataPolicy.RETURN_ALL);
 
         tileCache = AndroidUtil.createTileCache(this, "mapcache", mapView.getModel().displayModel.getTileSize(), 1f, this.mapView.getModel().frameBufferModel.getOverdrawFactor());
 
-        multiMapDataStore.addMapDataStore(worldMap,true,true);
-        multiMapDataStore.addMapDataStore(taiwanMap,false,false);
+        //multiMapDataStore.addMapDataStore(worldMap,true,true);
+        //multiMapDataStore.addMapDataStore(taiwanMap,false,false);
 
-        tileRendererLayer = new TileRendererLayer(tileCache,multiMapDataStore,mapView.getModel().mapViewPosition,false,true, AndroidGraphicFactory.INSTANCE);
-        tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
+        //tileRendererLayer = new TileRendererLayer(tileCache,multiMapDataStore,mapView.getModel().mapViewPosition,false,true, AndroidGraphicFactory.INSTANCE);
+        //tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
 
         mapView.getModel().mapViewPosition.setMapPosition(new MapPosition(new LatLong(23.6, 121), (byte) 7));
 
 
         //Adding Layout(first add display layout and then add control layout)
-        mapView.getLayerManager().getLayers().add(tileRendererLayer);
+        //mapView.getLayerManager().getLayers().add(tileRendererLayer);
         mapView.getLayerManager().getLayers().add(nowLocationLayout);
         nowLocationLayout.enableMyLocation(true);
     }
