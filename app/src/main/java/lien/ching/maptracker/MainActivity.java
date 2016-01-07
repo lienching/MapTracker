@@ -43,16 +43,16 @@ public class MainActivity extends Activity {
         mapView.setBuiltInZoomControls(true);
         mapView.getMapZoomControls().setZoomLevelMin((byte) 5);
         mapView.getMapZoomControls().setZoomLevelMax((byte) 20);
+        mapView.getModel().mapViewPosition.setMapPosition(new MapPosition(new LatLong(23.6, 121), (byte) 7));
         setContentView(mapView);
         nowLocationLayout = new NowLocationLayout(this,mapView.getModel().mapViewPosition);
-        envCheck = new EnvCheck(mapView.getContext(),this);
+        envCheck = new EnvCheck(mapView,nowLocationLayout,this.getApplicationContext(),this);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        envCheck.CheckAndDownload("world", "world-lowres-0-7.map");
-        envCheck.CheckAndDownload("asia", "taiwan.map");
+
         //worldMap = new MapFile(new File(Constant.PATH_WORLDMAP));
         //taiwanMap = new MapFile(new File(Constant.PATH_TAIWANMAP));
         //multiMapDataStore = new MultiMapDataStore(MultiMapDataStore.DataPolicy.RETURN_ALL);
@@ -65,12 +65,13 @@ public class MainActivity extends Activity {
         //tileRendererLayer = new TileRendererLayer(tileCache,multiMapDataStore,mapView.getModel().mapViewPosition,false,true, AndroidGraphicFactory.INSTANCE);
         //tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
 
-        mapView.getModel().mapViewPosition.setMapPosition(new MapPosition(new LatLong(23.6, 121), (byte) 7));
 
 
-        //TODO Debug~
+
         //Adding Layout(first add display layout and then add control layout)
         //mapView.getLayerManager().getLayers().add(tileRendererLayer);
+        envCheck.CheckAnddownload("world", "world-lowres-0-7.map");
+        envCheck.CheckAnddownload("asia", "taiwan.map");
         mapView.getLayerManager().getLayers().add(nowLocationLayout);
         nowLocationLayout.enableMyLocation(true);
     }

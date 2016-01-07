@@ -42,7 +42,6 @@ import lien.ching.maptracker.R;
  * Created by lienching on 12/2/15.
  */
 
-//TODO AGPS判斷
 public class NowLocationLayout extends Layer implements LocationListener,GpsStatus.Listener,ActivityCompat.OnRequestPermissionsResultCallback {
 
     private final byte PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10;
@@ -164,9 +163,9 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
 
     @Override
     public synchronized void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
-        if (!this.myLocationEnabled || this.getSatelliteInUseNum() < 6 || lastLocation.getAccuracy()>Criteria.ACCURACY_HIGH) {
-            return;
-        }
+        //if (!this.myLocationEnabled || this.getSatelliteInUseNum() < 6 || lastLocation.getAccuracy()>Criteria.ACCURACY_HIGH) {
+        //  return;
+        //}
         this.circle.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
         this.marker.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
         List<LatLong> coordinateList = polyline.getLatLongs();
@@ -216,15 +215,16 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
 
     @Override
     public void onLocationChanged(Location location) {
-        if(this.getSatelliteInUseNum()<6)return;
+        //if(this.getSatelliteInUseNum()<6)return;
         synchronized (this) {
+            Log.d("Accuracy", Float.toString(location.getAccuracy()));
             this.lastLocation = location;
-
             LatLong latLong = locationToLatLong(location);
             this.marker.setLatLong(latLong);
             this.circle.setLatLong(latLong);
             history.add(latLong);
-            if (location.getAccuracy() <= Criteria.ACCURACY_HIGH) {
+
+            if (location.getAccuracy() >= Criteria.ACCURACY_HIGH) {
                 this.circle.setRadius(location.getAccuracy());
             } else {
                 this.circle.setRadius(40);

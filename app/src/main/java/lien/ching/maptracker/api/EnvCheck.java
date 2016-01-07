@@ -11,13 +11,21 @@ import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
+import org.mapsforge.map.android.util.AndroidUtil;
 import org.mapsforge.map.android.view.MapView;
+import org.mapsforge.map.layer.cache.TileCache;
+import org.mapsforge.map.layer.labels.LabelLayer;
+import org.mapsforge.map.layer.renderer.TileRendererLayer;
+import org.mapsforge.map.reader.MapFile;
+import org.mapsforge.map.rendertheme.InternalRenderTheme;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import lien.ching.maptracker.Constant;
 import lien.ching.maptracker.R;
+import lien.ching.maptracker.overlay.NowLocationLayout;
 
 /**
  * Created by lienching on 11/27/15.
@@ -31,10 +39,12 @@ public class EnvCheck {
     private mapDownloadManger downloadManger;
     private Activity activity;
     private MapView mapView;
-    public EnvCheck(MapView mapView,Context context,Activity activity){
+    private NowLocationLayout locationLayout;
+    public EnvCheck(MapView mapView,NowLocationLayout locationLayout,Context context,Activity activity){
         this.activity = activity;
         this.context = context;
         this.mapView = mapView;
+        this.locationLayout = locationLayout;
     }
     public EnvCheck(Context context,Activity activity){
         this.activity = activity;
@@ -43,9 +53,19 @@ public class EnvCheck {
     }
 
     public void CheckAnddownload(String continent, String sourcefile) {
-        downloadManger = new mapDownloadManger(mapView,context,continent+"/"+sourcefile);
-        Thread thread = new Thread(downloadManger);
-        thread.run();
+        String mapfile = continent+"/"+sourcefile;
+        if(!this.isMapResourceExist(mapfile)) {
+            downloadManger = new mapDownloadManger(mapView,locationLayout, context, mapfile);
+            Thread thread = new Thread(downloadManger);
+            thread.run();
+        }
+        else{
+            MapFile targetFile = new MapFile(new File(Constant.PATH_MAPSFORGE+mapfile));
+            TileCache tileCache = AndroidUtil.createTileCache(context, "mapcache", mapView.getModel().displayModel.getTileSize(), 1f, mapView.getModel().frameBufferModel.getOverdrawFactor());
+            TileRendererLayer tileRendererLayer = AndroidUtil.createTileRendererLayer(tileCache,mapView.getModel().mapViewPosition,targetFile, InternalRenderTheme.OSMARENDER,true,true);
+            tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
+            mapView.getLayerManager().getLayers().add(tileRendererLayer);
+        }
     }
     //All in one method(Check&Download)
     public void CheckAndDownload(String continent, String sourcefile){

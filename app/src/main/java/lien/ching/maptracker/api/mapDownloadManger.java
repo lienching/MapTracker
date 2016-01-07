@@ -25,6 +25,7 @@ import java.io.File;
 import java.net.URL;
 
 import lien.ching.maptracker.Constant;
+import lien.ching.maptracker.overlay.NowLocationLayout;
 
 
 /**
@@ -39,18 +40,21 @@ public class mapDownloadManger implements  Runnable{
     public MapView mapview;
     public String target;
     private BroadcastReceiver receiver;
-    public mapDownloadManger(MapView mapView,Context context, final String target){
+    private NowLocationLayout locationLayout;
+    public mapDownloadManger(MapView mapView,NowLocationLayout locationLayout,Context context, final String target){
         super();
         this.context = context;
         this.target = target;
         this.mapview = mapView;
+        this.locationLayout = locationLayout;
     }
     @Override
     public void run() {
         downloadManager = (DownloadManager) context.getSystemService(context.DOWNLOAD_SERVICE);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse("http://download.mapsforge.org/maps/" + target));
+        request.setDestinationInExternalPublicDir("mapsforge/maps/",target);
         enqueue = downloadManager.enqueue(request);
-        receiver = new LayerAdder(mapview,target,enqueue);
+        receiver = new LayerAdder(mapview,locationLayout,target,enqueue);
         context.registerReceiver(receiver,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
     }
 

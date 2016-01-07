@@ -27,4 +27,5 @@ dependencies {
     compile 'org.mapsforge:mapsforge-map-reader:0.6.0'
     compile 'org.mapsforge:svg-android:0.4.3'
     compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'org.robolectric:android-kxml2:4.1.2_r1_rc'
 }
