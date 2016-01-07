@@ -11,6 +11,8 @@ import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.mapsforge.map.android.view.MapView;
+
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
@@ -26,12 +28,25 @@ public class EnvCheck {
     private String externalpath = Environment.getExternalStorageDirectory().getPath();
     private MapDownloadManager mapDownloadManager;
     private MapUpdateManager mapUpdateManager;
+    private mapDownloadManger downloadManger;
     private Activity activity;
+    private MapView mapView;
+    public EnvCheck(MapView mapView,Context context,Activity activity){
+        this.activity = activity;
+        this.context = context;
+        this.mapView = mapView;
+    }
     public EnvCheck(Context context,Activity activity){
         this.activity = activity;
         this.context = context;
+        this.mapView = null;
     }
 
+    public void CheckAnddownload(String continent, String sourcefile) {
+        downloadManger = new mapDownloadManger(mapView,context,continent+"/"+sourcefile);
+        Thread thread = new Thread(downloadManger);
+        thread.run();
+    }
     //All in one method(Check&Download)
     public void CheckAndDownload(String continent, String sourcefile){
         String mapfile = continent+"/"+sourcefile;
