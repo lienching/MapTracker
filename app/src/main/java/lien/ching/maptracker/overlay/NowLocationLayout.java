@@ -3,6 +3,7 @@ package lien.ching.maptracker.overlay;
 import android.Manifest;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.location.Criteria;
@@ -25,6 +26,7 @@ import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
+import org.mapsforge.map.android.view.MapView;
 import org.mapsforge.map.layer.Layer;
 import org.mapsforge.map.layer.overlay.Circle;
 import org.mapsforge.map.layer.overlay.Marker;
@@ -42,48 +44,73 @@ import lien.ching.maptracker.R;
  * Created by lienching on 12/2/15.
  */
 
+
+//This class is using LocationManager to provided location information it may cause some issue, for more reliable location information use  Google Play services location APIs(http://developer.android.com/training/location/index.html)
+
 public class NowLocationLayout extends Layer implements LocationListener,GpsStatus.Listener,ActivityCompat.OnRequestPermissionsResultCallback {
 
-    private final byte PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10;
-    private static final GraphicFactory GRAPHIC_FACTORY = AndroidGraphicFactory.INSTANCE;
-    private float minDistance = 0.0f;
-    private long minTime = 0;
-    private MapViewPosition mapViewPosition;
+
     private Activity activity;
-    private boolean centerAtNextFix;
-    private final Circle circle;
-    private Location lastLocation;
-    private final LocationManager locationManager;
-    private final Marker marker;
-    private final Polyline polyline;
-    private List<LatLong> history;
-    private boolean myLocationEnabled;
-    private boolean snapToLocationEnabled;
-    private Bitmap bitmap;
-    private GpsStatus mGpsStatus;
-    private int satellitenum;
-    /**
-     * @param location
-     *            the location whose geographical coordinates should be converted.
-     * @return a new LatLong with the geographical coordinates taken from the given location.
-     */
-    public static LatLong locationToLatLong(Location location) {
-        return new LatLong(location.getLatitude(), location.getLongitude(), true);
+    private MapViewPosition mapViewPosition;
+    private MapView mapView;
+    private LocationManager locationManager;
+    private List<LatLong> history_path;
+
+    private Boolean track;
+
+    //For drawing purpose (http://mapsforge.org/docs/0.6.0/org/mapsforge/map/android/graphics/AndroidGraphicFactory.html)
+    private static final GraphicFactory GRAPHIC_FACTORY = AndroidGraphicFactory.INSTANCE;
+    private Circle accuray_circle;
+    private Marker loc_marker;
+    private Polyline usr_path;
+
+
+
+
+    //Constructor
+    public NowLocationLayout(Activity activity,MapViewPosition mapViewPosition,MapView mapView){
+        this.activity = activity;
+        this.mapViewPosition = mapViewPosition;
+        this.mapView = mapView;
+        this.locationManager = (LocationManager) activity.getSystemService(activity.LOCATION_SERVICE);
+
+        track = false;
+
+        //http://developer.android.com/reference/android/location/LocationManager.html#requestLocationUpdates%28java.lang.String,%20long,%20float,%20android.location.LocationListener%29
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L,0, this);
+        //Check if location services available
+        if(!locationManager.isProviderEnabled (LocationManager.GPS_PROVIDER)){
+            activity.startActivityForResult(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS), 0);
+        }
+
+        locationManager.addGpsStatusListener(this);//To add satellite listener
+
+
+        //setDisplayModel(this.displayModel) set circle, polyline, marker etc... in to mapview's display model, so DisplayModel.getTileSize() won't point to a null object.
+        accuray_circle = new Circle(null,0,getDefaultCircleFill(),getDefaultCircleStroke());//Circle(LatLong,radius,color,stroke);
+        accuray_circle.setDisplayModel(mapView.getModel().displayModel);
+
+        usr_path = new Polyline(getDefaultPolylineStroke(),GRAPHIC_FACTORY);
+        usr_path.setDisplayModel(mapView.getModel().displayModel);
+
+        //AndroidGraphicFactory.convertToBitmap() for detail please check AndroidGraphicFactory
+        Drawable drawable = activity.getResources().getDrawable(R.drawable.locationmarker);
+        Bitmap bitmap = AndroidGraphicFactory.convertToBitmap(drawable);
+        loc_marker = new Marker(null, bitmap, 1, 0);
+        loc_marker.setDisplayModel(mapView.getModel().displayModel);
+
+        history_path = new LinkedList<LatLong>();//record user path
     }
 
-    private static Paint getDefaultCircleFill() {
-        return getPaint(GRAPHIC_FACTORY.createColor(48, 0, 0, 255), 0, Style.FILL);
+    //Transfer Function
+
+    private LatLong LocationToLatLong(Location location){
+        LatLong latlong = new LatLong(location.getLatitude(),location.getLongitude());
+        return latlong;
     }
 
-    private static Paint getDefaultCircleStroke() {
-        return getPaint(GRAPHIC_FACTORY.createColor(160, 0, 0, 255), 2, Style.STROKE);
-    }
-
-    private static Paint getDefaultPolylineStroke() {
-        return getPaint(GRAPHIC_FACTORY.createColor(160, 0, 255,0), 20, Style.STROKE);
-    }
-
-    private static Paint getPaint(int color, int strokeWidth, Style style) {
+    //Getter
+    protected Paint getPaint(int color, float strokeWidth, Style style){
         Paint paint = GRAPHIC_FACTORY.createPaint();
         paint.setColor(color);
         paint.setStrokeWidth(strokeWidth);
@@ -91,215 +118,78 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
         return paint;
     }
 
-    private int getSatelliteInUseNum(){
-        return this.satellitenum;
+    private Paint getDefaultCircleFill() {
+        return this.getPaint(GRAPHIC_FACTORY.createColor(48, 0, 0, 255), 0, Style.FILL);
     }
 
-    public NowLocationLayout(Activity activity, MapViewPosition mapViewPosition) {
-        super();
-        this.activity = activity;
-        this.mapViewPosition = mapViewPosition;
-        this.locationManager = (LocationManager) activity.getSystemService(activity.LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L,1.0f, this);
-        if(!locationManager.isProviderEnabled (LocationManager.GPS_PROVIDER)){
-            activity.startActivityForResult(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS), 0);
-        }
-
-        Drawable drawable = activity.getResources().getDrawable(R.drawable.locationmarker);
-        bitmap = AndroidGraphicFactory.convertToBitmap(drawable);
-        this.marker = new Marker(null, bitmap, 1, 0);
-        this.circle = new Circle(null, 0, getDefaultCircleFill(), getDefaultCircleStroke());
-        this.polyline = new Polyline(getDefaultPolylineStroke(),GRAPHIC_FACTORY);
-        history = new LinkedList<LatLong>();
-        locationManager.addGpsStatusListener(this);
+    private Paint getDefaultCircleStroke() {
+        return this.getPaint(GRAPHIC_FACTORY.createColor(160, 0, 0, 255), 2, Style.STROKE);
     }
+
+    private Paint getDefaultPolylineStroke() {
+        return this.getPaint(GRAPHIC_FACTORY.createColor(160, 0, 255, 0), 20, Style.STROKE);
+    }
+
+
+    //Enable Location Tracking
+    public void startTrack(){
+        this.track = true;
+    }
+
 
     @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        GpsStatus gpsStatus = locationManager.getGpsStatus(null);
-        if(gpsStatus != null) {
-            Iterable<GpsSatellite>satellites = gpsStatus.getSatellites();
-            Iterator<GpsSatellite> sat = satellites.iterator();
-            String lSatellites = null;
-            int i = 0;
-            while (sat.hasNext()) {
-                GpsSatellite satellite = sat.next();
-                lSatellites = "Satellite" + (i++) + ": "
-                        + satellite.getPrn() + ","
-                        + satellite.usedInFix() + ","
-                        + satellite.getSnr() + ","
-                        + satellite.getAzimuth() + ","
-                        + satellite.getElevation()+ "\n\n";
-
-                Log.d("SATELLITE",lSatellites);
-            }
-            this.satellitenum = i;
+    public void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
+        if(track) {
+            loc_marker.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
+            accuray_circle.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
         }
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        this.enableBestAvailableProvider();
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        this.enableBestAvailableProvider();
-    }
-
-    /**
-     * Stops the receiving of location . Has no effect if location updates are already disabled.
-     */
-    public synchronized void disableMyLocation() {
-        if (this.myLocationEnabled) {
-            this.myLocationEnabled = false;
-            try {
-                this.locationManager.removeUpdates(this);
-            } catch (Exception e) {
-                // do we need to catch security exceptions for this call on Android 6?
-            }
-        }
-    }
-
-    @Override
-    public synchronized void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
-        //if (!this.myLocationEnabled || this.getSatelliteInUseNum() < 6 || lastLocation.getAccuracy()>Criteria.ACCURACY_HIGH) {
-        //  return;
-        //}
-        this.circle.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
-        this.marker.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
-        List<LatLong> coordinateList = polyline.getLatLongs();
-        coordinateList.removeAll(coordinateList);
-        coordinateList.addAll(history);
-        polyline.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
-    }
-
-
-    public synchronized void enableMyLocation(boolean centerAtFirstFix) {
-        enableBestAvailableProvider();
-        this.centerAtNextFix = centerAtFirstFix;
-    }
-
-    /**
-     * @return the most-recently received location fix (might be null).
-     */
-    public synchronized Location getLastLocation() {
-        return this.lastLocation;
-    }
-
-    /**
-     * @return true if the map will be centered at the next received location fix, false otherwise.
-     */
-    public synchronized boolean isCenterAtNextFix() {
-        return this.centerAtNextFix;
-    }
-
-    /**
-     * @return true if the receiving of location updates is currently enabled, false otherwise.
-     */
-    public synchronized boolean isMyLocationEnabled() {
-        return this.myLocationEnabled;
-    }
-
-    /**
-     * @return true if the snap-to-location mode is enabled, false otherwise.
-     */
-    public synchronized boolean isSnapToLocationEnabled() {
-        return this.snapToLocationEnabled;
-    }
-
-    @Override
-    public void onDestroy() {
-        this.marker.onDestroy();
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        //if(this.getSatelliteInUseNum()<6)return;
-        synchronized (this) {
-            Log.d("Accuracy", Float.toString(location.getAccuracy()));
-            this.lastLocation = location;
-            LatLong latLong = locationToLatLong(location);
-            this.marker.setLatLong(latLong);
-            this.circle.setLatLong(latLong);
-            history.add(latLong);
-
-            if (location.getAccuracy() >= Criteria.ACCURACY_HIGH) {
-                this.circle.setRadius(location.getAccuracy());
-            } else {
-                this.circle.setRadius(40);
-            }
-
-            this.mapViewPosition.setCenter(latLong);
-            this.mapViewPosition.setZoomLevel((byte) 17);
-            requestRedraw();
-        }
-    }
-
-
-
-
-    public void setMinDistance(float minDistance) {
-        this.minDistance = minDistance;
-    }
-
-
-    public void setMinTime(long minTime) {
-        this.minTime = minTime;
-    }
-
-    /*
-    // @param snapToLocationEnabled
-   //           whether the map should be centered at each received location fix.
-    public synchronized void setSnapToLocationEnabled(boolean snapToLocationEnabled) {
-        this.snapToLocationEnabled = snapToLocationEnabled;
-    }
-    */
-
-    private synchronized void enableBestAvailableProvider() {
-        if (!AndroidSupportUtil.runtimePermissionRequiredForAccessFineLocation(activity)) {
-            enableBestAvailableProviderPermissionGranted();
-        } else {
-            ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
-        }
-    }
-
-    private void enableBestAvailableProviderPermissionGranted() {
-        disableMyLocation();
-
-        this.circle.setDisplayModel(this.displayModel);
-        this.marker.setDisplayModel(this.displayModel);
-        this.polyline.setDisplayModel(this.displayModel);
-
-        boolean result = false;
-        for (String provider : this.locationManager.getProviders(true)) {
-            if (LocationManager.GPS_PROVIDER.equals(provider)
-                    || LocationManager.NETWORK_PROVIDER.equals(provider)) {
-                result = true;
-                this.locationManager.requestLocationUpdates(provider, minTime, minDistance, this);
-            }
-        }
-        this.myLocationEnabled = result;
-    }
-
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION == requestCode && AndroidSupportUtil.verifyPermissions(grantResults)) {
-            enableBestAvailableProviderPermissionGranted();
-        }
-
+        List<LatLong> temp = usr_path.getLatLongs(); //To get all the LatLong that had been drew
+        temp.removeAll(temp); //Remove all
+        temp.addAll(history_path);//To re-add all path
+        usr_path.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
     }
 
     @Override
     public void onGpsStatusChanged(int event) {
-        satellitenum = 0;
-        mGpsStatus = locationManager.getGpsStatus(mGpsStatus);
-        Iterable<GpsSatellite> satellites = mGpsStatus.getSatellites();
-        if (satellites != null) {
-            for (GpsSatellite gpsSatellite : satellites) {
-                if (gpsSatellite.usedInFix()) {
-                    satellitenum++;
-                }
-            }
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+        LatLong latLong = this.LocationToLatLong(location);
+        loc_marker.setLatLong(latLong);
+        accuray_circle.setLatLong(latLong);
+        history_path.add(latLong);
+
+        //https://stackoverflow.com/a/13807786
+        accuray_circle.setRadius(location.getAccuracy());
+
+        mapViewPosition.setCenter(latLong);
+        mapViewPosition.setZoomLevel((byte) 17);
+        requestRedraw();
+
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {}
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        locationManager.requestLocationUpdates(provider, 1000L, 0, this);
+        if(locationManager.GPS_PROVIDER.equals(provider)) {
+            track = true;
         }
     }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+        if(locationManager.GPS_PROVIDER.equals(provider)){
+            track = false;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {}
+
 }

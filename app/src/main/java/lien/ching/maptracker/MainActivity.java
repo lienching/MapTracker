@@ -36,7 +36,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        AndroidGraphicFactory.createInstance(this.getApplication());
+        AndroidGraphicFactory.createInstance(this.getApplication()); //Initiation Mapsforge Library
         mapView = new MapView(this);
         mapView.setClickable(true);
         mapView.getMapScaleBar().setVisible(true);
@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
         mapView.getMapZoomControls().setZoomLevelMax((byte) 20);
         mapView.getModel().mapViewPosition.setMapPosition(new MapPosition(new LatLong(23.6, 121), (byte) 7));
         setContentView(mapView);
-        nowLocationLayout = new NowLocationLayout(this,mapView.getModel().mapViewPosition);
+        nowLocationLayout = new NowLocationLayout(this,mapView.getModel().mapViewPosition,mapView);
         envCheck = new EnvCheck(mapView,nowLocationLayout,this.getApplicationContext(),this);
     }
 
@@ -53,27 +53,10 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
 
-        //worldMap = new MapFile(new File(Constant.PATH_WORLDMAP));
-        //taiwanMap = new MapFile(new File(Constant.PATH_TAIWANMAP));
-        //multiMapDataStore = new MultiMapDataStore(MultiMapDataStore.DataPolicy.RETURN_ALL);
-
-        //tileCache = AndroidUtil.createTileCache(this, "mapcache", mapView.getModel().displayModel.getTileSize(), 1f, this.mapView.getModel().frameBufferModel.getOverdrawFactor());
-
-        //multiMapDataStore.addMapDataStore(worldMap,true,true);
-        //multiMapDataStore.addMapDataStore(taiwanMap,false,false);
-
-        //tileRendererLayer = new TileRendererLayer(tileCache,multiMapDataStore,mapView.getModel().mapViewPosition,false,true, AndroidGraphicFactory.INSTANCE);
-        //tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
-
-
-
-
-        //Adding Layout(first add display layout and then add control layout)
-        //mapView.getLayerManager().getLayers().add(tileRendererLayer);
-        envCheck.CheckAnddownload("world", "world-lowres-0-7.map");
+        envCheck.CheckAnddownload("world", "world-lowres-0-7.map"); //Check if the map source exist
         envCheck.CheckAnddownload("asia", "taiwan.map");
-        mapView.getLayerManager().getLayers().add(nowLocationLayout);
-        nowLocationLayout.enableMyLocation(true);
+        mapView.getLayerManager().getLayers().add(nowLocationLayout);//Add Location Layer
+        nowLocationLayout.startTrack();
     }
 
     @Override
