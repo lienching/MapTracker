@@ -24,6 +24,8 @@ import lien.ching.maptracker.overlay.NowLocationLayout;
 /**
  * Created by lienching on 1/7/16.
  */
+
+//http://developer.android.com/reference/android/content/BroadcastReceiver.html
 public class LayerAdder extends BroadcastReceiver {
     private MapView mapView;
     private String target;
@@ -47,9 +49,9 @@ public class LayerAdder extends BroadcastReceiver {
                 TileRendererLayer tileRendererLayer = AndroidUtil.createTileRendererLayer(tileCache,mapView.getModel().mapViewPosition,targetFile, InternalRenderTheme.OSMARENDER,true,true);
                 tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
                 mapView.getLayerManager().getLayers().add(tileRendererLayer);
-                mapView.getLayerManager().getLayers().remove(locationLayout);
+                mapView.getLayerManager().getLayers().remove(locationLayout);//LocationLayout need be the top layout of the mapview, to keep user location visible
                 mapView.getLayerManager().getLayers().add(locationLayout);
-                Log.d("LayerAdder","LayerAdd");
+                Log.d("LayerAdder",target+" Download Completed"+", LayerAdd");
             }
         }
     }

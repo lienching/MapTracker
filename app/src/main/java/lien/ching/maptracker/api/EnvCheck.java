@@ -52,7 +52,7 @@ public class EnvCheck {
         this.mapView = null;
     }
 
-    public void CheckAnddownload(String continent, String sourcefile) {
+    public void CheckAndDownload(String continent, String sourcefile) {
         String mapfile = continent+"/"+sourcefile;
         if(!this.isMapResourceExist(mapfile)) {
             downloadManger = new mapDownloadManger(mapView,locationLayout, context, mapfile);
@@ -67,28 +67,7 @@ public class EnvCheck {
             mapView.getLayerManager().getLayers().add(tileRendererLayer);
         }
     }
-    //All in one method(Check&Download)
-    public void CheckAndDownload(String continent, String sourcefile){
-        String mapfile = continent+"/"+sourcefile;
-        if(!this.isMapResourceExist(mapfile)){
-            mapDownloadManager = new MapDownloadManager(context,activity);
-            mapDownloadManager.execute(mapfile,continent);
-            try {
-                while (!mapDownloadManager.get(10, TimeUnit.MINUTES)) ;
-            }catch (Exception e){
-                Log.e("mapDownloadManager",e.toString());
-            }
-        }
-        else{
-            mapUpdateManager = new MapUpdateManager(context,activity);
-            mapUpdateManager.execute(mapfile,continent);
-            try {
-                while (!mapDownloadManager.get(10, TimeUnit.MINUTES)) ;
-            }catch (Exception e){
-                Log.e("mapDownloadManager",e.toString());
-            }
-        }
-    }
+
 
     public boolean isMapResourceDirExist(final String continent){
         File dir = new File(Constant.PATH_MAPSFORGE+continent);

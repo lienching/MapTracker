@@ -31,7 +31,7 @@ import lien.ching.maptracker.overlay.NowLocationLayout;
 /**
  * Created by lienching on 12/21/15.
  */
-public class mapDownloadManger implements  Runnable{
+public class mapDownloadManager implements  Runnable{
 
 
     private DownloadManager downloadManager;
@@ -41,7 +41,7 @@ public class mapDownloadManger implements  Runnable{
     public String target;
     private BroadcastReceiver receiver;
     private NowLocationLayout locationLayout;
-    public mapDownloadManger(MapView mapView,NowLocationLayout locationLayout,Context context, final String target){
+    public mapDownloadManager(MapView mapView,NowLocationLayout locationLayout,Context context, final String target){
         super();
         this.context = context;
         this.target = target;
@@ -53,9 +53,9 @@ public class mapDownloadManger implements  Runnable{
         downloadManager = (DownloadManager) context.getSystemService(context.DOWNLOAD_SERVICE);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse("http://download.mapsforge.org/maps/" + target));
         request.setDestinationInExternalPublicDir("mapsforge/maps/",target);
-        enqueue = downloadManager.enqueue(request);
-        receiver = new LayerAdder(mapview,locationLayout,target,enqueue);
-        context.registerReceiver(receiver,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+        enqueue = downloadManager.enqueue(request); //Active Download Process
+        receiver = new LayerAdder(mapview,locationLayout,target,enqueue); //Created exclusive receiver
+        context.registerReceiver(receiver,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)); //Registered Reciever
     }
 
 

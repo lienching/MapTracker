@@ -53,8 +53,8 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
 
-        envCheck.CheckAnddownload("world", "world-lowres-0-7.map"); //Check if the map source exist
-        envCheck.CheckAnddownload("asia", "taiwan.map");
+        envCheck.CheckAndDownload("world", "world-lowres-0-7.map"); //Check if the map source exist
+        envCheck.CheckAndDownload("asia", "taiwan.map");
         mapView.getLayerManager().getLayers().add(nowLocationLayout);//Add Location Layer
         nowLocationLayout.startTrack();
     }
