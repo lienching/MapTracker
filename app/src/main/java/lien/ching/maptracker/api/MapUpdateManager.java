@@ -20,6 +20,8 @@ import lien.ching.maptracker.Constant;
 
 /**
  * Created by lienching on 12/1/15.
+ * In this class, I had no idea how to update a file by using DownloadManager
+ * so I just try to use standard HTTP Download as the method
  */
 public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
 
@@ -34,6 +36,7 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
     }
     @Override
     protected Boolean doInBackground(String... params) {
+        //For Details, please check http://stackoverflow.com/a/3028660
         String continent = params[1];
         InputStream input = null;
         OutputStream output = null;
@@ -51,7 +54,7 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
             input = connection.getInputStream();
 
 
-            if (outputFile.lastModified()==connection.getLastModified()){
+            if (outputFile.lastModified()==connection.getLastModified()){ //if the date is same as the latest file then close the download process
                 input.close();
                 output.close();
                 return true;

@@ -27,7 +27,11 @@ import lien.ching.maptracker.MainActivity;
 
 /**
  * Created by lienching on 11/27/15.
- * This class make download map source file much easier.
+ * In this class, I want to put downloading process in to Async
+ * I directly implementing the HTTP Download in doInBackground()
+ * In the app I didn't use this class as the download class
+ * if you want to see the source code that use in the app
+ * please check mapDownloadManager.class for more detail
  */
 public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
     private Context context;
@@ -42,6 +46,8 @@ public class MapDownloadManager extends AsyncTask<String,Void,Boolean>{
 
     @Override
     protected Boolean doInBackground(String... params) {
+
+        //For Details, please check http://stackoverflow.com/a/3028660
         String continent = params[1];
         InputStream input = null;
         OutputStream output = null;

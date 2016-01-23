@@ -2,6 +2,7 @@ package lien.ching.maptracker;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.MapPosition;
@@ -47,6 +48,9 @@ public class MainActivity extends Activity {
         setContentView(mapView);
         nowLocationLayout = new NowLocationLayout(this,mapView.getModel().mapViewPosition,mapView);
         envCheck = new EnvCheck(mapView,nowLocationLayout,this.getApplicationContext(),this);
+        //To keep screen on(http://developer.android.com/training/scheduling/wakelock.html)
+        this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
     }
 
     @Override

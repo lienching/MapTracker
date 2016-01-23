@@ -36,7 +36,7 @@ public class EnvCheck {
     private String externalpath = Environment.getExternalStorageDirectory().getPath();
     private MapDownloadManager mapDownloadManager;
     private MapUpdateManager mapUpdateManager;
-    private mapDownloadManger downloadManger;
+    private mapDownloadManager downloadManger;
     private Activity activity;
     private MapView mapView;
     private NowLocationLayout locationLayout;
@@ -55,7 +55,7 @@ public class EnvCheck {
     public void CheckAndDownload(String continent, String sourcefile) {
         String mapfile = continent+"/"+sourcefile;
         if(!this.isMapResourceExist(mapfile)) {
-            downloadManger = new mapDownloadManger(mapView,locationLayout, context, mapfile);
+            downloadManger = new mapDownloadManager(mapView,locationLayout, context, mapfile);
             Thread thread = new Thread(downloadManger);
             thread.run();
         }
