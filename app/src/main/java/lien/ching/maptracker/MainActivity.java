@@ -2,6 +2,7 @@ package lien.ching.maptracker;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.View;
 import android.view.WindowManager;
 
 import org.mapsforge.core.model.LatLong;
@@ -45,6 +46,8 @@ public class MainActivity extends Activity {
         mapView.getMapZoomControls().setZoomLevelMin((byte) 5);
         mapView.getMapZoomControls().setZoomLevelMax((byte) 20);
         mapView.getModel().mapViewPosition.setMapPosition(new MapPosition(new LatLong(23.6, 121), (byte) 7));
+        //Disable hardware acceleration at mapview, for more detail about this line of code please check (https://goo.gl/v5weg9)
+        mapView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         setContentView(mapView);
         nowLocationLayout = new NowLocationLayout(this,mapView.getModel().mapViewPosition,mapView);
         envCheck = new EnvCheck(mapView,nowLocationLayout,this.getApplicationContext(),this);
