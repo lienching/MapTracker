@@ -54,7 +54,7 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
             input = connection.getInputStream();
 
 
-            if (outputFile.lastModified()==connection.getLastModified()){ //if the date is same as the latest file then close the download process
+            if (outputFile.lastModified() < connection.getLastModified()){ //if the date is older than the latest file then close the download process
                 input.close();
                 output.close();
                 return true;
@@ -83,9 +83,8 @@ public class MapUpdateManager extends AsyncTask<String,Void,Boolean> {
                 if (input != null)
                     input.close();
 
-            } catch (IOException ignored) {
-            }
-            outputFile.setLastModified(connection.getLastModified());
+            } catch (IOException ignored) { }
+
             if (connection != null)
                 connection.disconnect();
         }

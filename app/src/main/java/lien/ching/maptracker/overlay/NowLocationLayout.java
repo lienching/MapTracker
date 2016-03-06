@@ -77,7 +77,7 @@ public class NowLocationLayout extends Layer implements LocationListener,GpsStat
         track = false;
 
         //http://developer.android.com/reference/android/location/LocationManager.html#requestLocationUpdates%28java.lang.String,%20long,%20float,%20android.location.LocationListener%29
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L,0, this);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0, this);
         //Check if location services available
         if(!locationManager.isProviderEnabled (LocationManager.GPS_PROVIDER)){
             activity.startActivityForResult(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS), 0);
